@@ -36,6 +36,10 @@ XDEX::XDEX(QIODevice *pDevice) : XBinary(pDevice)
 {
 }
 
+XDEX::~XDEX()
+{
+}
+
 XBinary::MODE XDEX::getMode(QIODevice *pDevice)
 {
     XDEX xdex(pDevice);

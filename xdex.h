@@ -51,6 +51,7 @@ public:
     };
 
     XDEX(QIODevice *pDevice);
+    virtual ~XDEX();
 
     static MODE getMode(QIODevice *pDevice);
     virtual bool isValid(PDSTRUCT *pPdStruct = nullptr) override;
