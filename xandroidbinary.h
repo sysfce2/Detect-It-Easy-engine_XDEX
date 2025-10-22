@@ -38,6 +38,7 @@ public:
     };
 
     XAndroidBinary(QIODevice *pDevice);
+    virtual ~XAndroidBinary();
 
     virtual bool isValid(PDSTRUCT *pPdStruct = nullptr) override;
     virtual ENDIAN getEndian() override;

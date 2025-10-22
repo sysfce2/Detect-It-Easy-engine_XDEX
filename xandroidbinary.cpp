@@ -24,6 +24,10 @@ XAndroidBinary::XAndroidBinary(QIODevice *pDevice) : XBinary(pDevice)
 {
 }
 
+XAndroidBinary::~XAndroidBinary()
+{
+}
+
 bool XAndroidBinary::isValid(PDSTRUCT *pPdStruct)
 {
     bool bIsValid = false;
