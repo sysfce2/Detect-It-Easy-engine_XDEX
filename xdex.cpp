@@ -60,16 +60,16 @@ XBinary::XIDSTRING _TABLE_XDEX_HeaderEndianTags[] = {
 const QString XDEX::PREFIX_Type = "TYPE";
 
 XBinary::XCONVERT _TABLE_DEX_STRUCTID[] = {{XDEX::STRUCTID_UNKNOWN, "Unknown", QObject::tr("Unknown")},
-                                           {XDEX::STRUCTID_HEADER, "HEADER", QString("HEADER")},
-                                           {XDEX::STRUCTID_STRING_IDS_LIST, "STRING_IDS_LIST", QString("STRING_IDS_LIST")},
-                                           {XDEX::STRUCTID_TYPE_IDS_LIST, "TYPE_IDS_LIST", QString("TYPE_IDS_LIST")},
-                                           {XDEX::STRUCTID_PROTO_IDS_LIST, "PROTO_IDS_LIST", QString("PROTO_IDS_LIST")},
-                                           {XDEX::STRUCTID_FIELD_IDS_LIST, "FIELD_IDS_LIST", QString("FIELD_IDS_LIST")},
-                                           {XDEX::STRUCTID_METHOD_IDS_LIST, "METHOD_IDS_LIST", QString("METHOD_IDS_LIST")},
-                                           {XDEX::STRUCTID_CLASS_DEFS_LIST, "CLASS_DEFS_LIST", QString("CLASS_DEFS_LIST")},
-                                           {XDEX::STRUCTID_DATA_LIST, "DATA_LIST", QString("DATA_LIST")},
-                                           {XDEX::STRUCTID_LINK_LIST, "LINK_LIST", QString("LINK_LIST")},
-                                           {XDEX::STRUCTID_MAP_LIST, "MAP_LIST", QString("MAP_LIST")}};
+                                           {XDEX::STRUCTID_HEADER, "HEADER", "HEADER"},
+                                           {XDEX::STRUCTID_STRING_IDS_LIST, "STRING_IDS_LIST", "STRING_IDS_LIST"},
+                                           {XDEX::STRUCTID_TYPE_IDS_LIST, "TYPE_IDS_LIST", "TYPE_IDS_LIST"},
+                                           {XDEX::STRUCTID_PROTO_IDS_LIST, "PROTO_IDS_LIST", "PROTO_IDS_LIST"},
+                                           {XDEX::STRUCTID_FIELD_IDS_LIST, "FIELD_IDS_LIST", "FIELD_IDS_LIST"},
+                                           {XDEX::STRUCTID_METHOD_IDS_LIST, "METHOD_IDS_LIST", "METHOD_IDS_LIST"},
+                                           {XDEX::STRUCTID_CLASS_DEFS_LIST, "CLASS_DEFS_LIST", "CLASS_DEFS_LIST"},
+                                           {XDEX::STRUCTID_DATA_LIST, "DATA_LIST", "DATA_LIST"},
+                                           {XDEX::STRUCTID_LINK_LIST, "LINK_LIST", "LINK_LIST"},
+                                           {XDEX::STRUCTID_MAP_LIST, "MAP_LIST", "MAP_LIST"}};
 
 XDEX::XDEX(QIODevice *pDevice) : XBinary(pDevice)
 {
@@ -153,13 +153,7 @@ QString XDEX::getOsVersion()
     // https://source.android.com/devices/tech/dalvik/dex-format
     if (sDDEXVersion == "035") {
         sVersion = XBinary::getAndroidVersionFromApi(14);  // TODO move the function here
-    }
-    //        else if (sDDEXVersion=="036")
-    //        {
-    //            // Due to a Dalvik bug present in older versions of Android, Dex version 036 has been skipped.
-    //            // Dex version 036 is not valid for any version of Android and never will be.
-    //        }
-    else if (sDDEXVersion == "037") {
+    } else if (sDDEXVersion == "037") {  // 036 was skipped due to a Dalvik bug; it is not valid for any Android version
         sVersion = XBinary::getAndroidVersionFromApi(24);  // TODO move the function here
     } else if (sDDEXVersion == "038") {
         sVersion = XBinary::getAndroidVersionFromApi(26);  // TODO move the function here
@@ -519,7 +513,6 @@ XDEX_DEF::HEADER XDEX::_readHEADER(qint64 nOffset)
     result.magic = read_uint32(nOffset + offsetof(XDEX_DEF::HEADER, magic), false);
     result.version = read_uint32(nOffset + offsetof(XDEX_DEF::HEADER, version), false);
     result.checksum = read_uint32(nOffset + offsetof(XDEX_DEF::HEADER, checksum), bIsBigEndian);
-    //    result.signature=getHeader_signature();
     result.file_size = read_uint32(nOffset + offsetof(XDEX_DEF::HEADER, file_size), bIsBigEndian);
     result.header_size = read_uint32(nOffset + offsetof(XDEX_DEF::HEADER, header_size), bIsBigEndian);
     result.endian_tag = read_uint32(nOffset + offsetof(XDEX_DEF::HEADER, endian_tag), false);
@@ -1017,20 +1010,12 @@ void XDEX::getProtoIdItems(QList<XDEX_DEF::MAP_ITEM> *pMapItems, PDSTRUCT *pPdSt
 
 QString XDEX::getStringItemIdString(XDEX_DEF::STRING_ITEM_ID stringItemId)
 {
-    QString sResult;
-
-    sResult = _read_utf8String(stringItemId.string_data_off);
-
-    return sResult;
+    return _read_utf8String(stringItemId.string_data_off);
 }
 
 QString XDEX::getStringItemIdString(XDEX_DEF::STRING_ITEM_ID stringItemId, char *pData, qint32 nDataSize, qint32 nDataOffset)
 {
-    QString sResult;
-
-    sResult = XBinary::_read_utf8String(stringItemId.string_data_off, pData, nDataSize, nDataOffset);
-
-    return sResult;
+    return XBinary::_read_utf8String(stringItemId.string_data_off, pData, nDataSize, nDataOffset);
 }
 
 QString XDEX::getStringItemIdString(QList<XDEX_DEF::STRING_ITEM_ID> *pList, qint32 nIndex, char *pData, qint32 nDataSize, qint32 nDataOffset)
@@ -1046,24 +1031,12 @@ QString XDEX::getStringItemIdString(QList<XDEX_DEF::STRING_ITEM_ID> *pList, qint
 
 QString XDEX::getTypeItemIdString(XDEX_DEF::TYPE_ITEM_ID typeItemId, XDEX_DEF::MAP_ITEM *pMapItemStrings)
 {
-    QString sResult;
-
-    bool bIsBigEndian = isBigEndian();
-
-    sResult = _read_utf8String(read_uint32(pMapItemStrings->nOffset + sizeof(quint32) * typeItemId.descriptor_idx, bIsBigEndian));
-
-    return sResult;
+    return _read_utf8String(read_uint32(pMapItemStrings->nOffset + sizeof(quint32) * typeItemId.descriptor_idx, isBigEndian()));
 }
 
 QString XDEX::getTypeItemIdString(XDEX_DEF::TYPE_ITEM_ID typeItemId, XDEX_DEF::MAP_ITEM *pMapItemStrings, char *pData, qint32 nDataSize, qint32 nDataOffset)
 {
-    QString sResult;
-
-    bool bIsBigEndian = isBigEndian();
-
-    sResult = XBinary::_read_utf8String(read_uint32(pMapItemStrings->nOffset + sizeof(quint32) * typeItemId.descriptor_idx, bIsBigEndian), pData, nDataSize, nDataOffset);
-
-    return sResult;
+    return XBinary::_read_utf8String(read_uint32(pMapItemStrings->nOffset + sizeof(quint32) * typeItemId.descriptor_idx, isBigEndian()), pData, nDataSize, nDataOffset);
 }
 
 QString XDEX::getTypeItemIdString(QList<XDEX_DEF::TYPE_ITEM_ID> *pList, qint32 nIndex, XDEX_DEF::MAP_ITEM *pMapItemStrings, char *pData, qint32 nDataSize,
@@ -1080,15 +1053,10 @@ QString XDEX::getTypeItemIdString(QList<XDEX_DEF::TYPE_ITEM_ID> *pList, qint32 n
 
 QString XDEX::getProtoItemIdString(XDEX_DEF::PROTO_ITEM_ID protoItemId, XDEX_DEF::MAP_ITEM *pMapItemStrings)
 {
-    QString sResult;
-
     bool bIsBigEndian = isBigEndian();
-
     QString sPrototype = _read_utf8String(read_uint32(pMapItemStrings->nOffset + sizeof(quint32) * protoItemId.shorty_idx, bIsBigEndian));
     QString sReturn = _read_utf8String(read_uint32(pMapItemStrings->nOffset + sizeof(quint32) * protoItemId.return_type_idx, bIsBigEndian));
-    sResult = QString("%1 %2()").arg(sReturn, sPrototype);
-
-    return sResult;
+    return QString("%1 %2()").arg(sReturn, sPrototype);
 }
 
 QMap<quint64, QString> XDEX::getHeaderMagics()
