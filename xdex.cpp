@@ -175,7 +175,7 @@ QString XDEX::getArch()
 
 QString XDEX::getOsVersion()
 {
-    const QString sDEXVersion = getVersion();
+    QString sDEXVersion = getVersion();
     static const DEX_VERSION_API versions[] = {
         {"035", 14}, {"037", 24},  // 036 was skipped due to a Dalvik bug; it is not valid for any Android version
         {"038", 26}, {"039", 28}, {"040", 29},
@@ -1079,7 +1079,7 @@ QString XDEX::getProtoItemIdString(XDEX_DEF::PROTO_ITEM_ID protoItemId, XDEX_DEF
     bool bIsBigEndian = isBigEndian();
     QString sPrototype = _read_utf8String(read_uint32(pMapItemStrings->nOffset + sizeof(quint32) * protoItemId.shorty_idx, bIsBigEndian));
     QString sReturn = _read_utf8String(read_uint32(pMapItemStrings->nOffset + sizeof(quint32) * protoItemId.return_type_idx, bIsBigEndian));
-    return QString("%1 %2()").arg(sReturn, sPrototype);
+    return QString("%1 %2()").arg(sReturn).arg(sPrototype);
 }
 
 QMap<quint64, QString> XDEX::getHeaderMagics()
