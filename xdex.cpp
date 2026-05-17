@@ -1295,197 +1295,197 @@ QList<XBinary::FPART> XDEX::getFileParts(quint32 nFileParts, qint32 nLimit, PDST
     return listResult;
 }
 
-QList<XBinary::DATA_HEADER> XDEX::getDataHeaders(const DATA_HEADERS_OPTIONS &dataHeadersOptions, PDSTRUCT *pPdStruct)
-{
-    QList<XBinary::DATA_HEADER> listResult;
+// QList<XBinary::DATA_HEADER> XDEX::getDataHeaders(const DATA_HEADERS_OPTIONS &dataHeadersOptions, PDSTRUCT *pPdStruct)
+// {
+//     QList<XBinary::DATA_HEADER> listResult;
 
-    if (dataHeadersOptions.nID == STRUCTID_UNKNOWN) {
-        DATA_HEADERS_OPTIONS _dataHeadersOptions = dataHeadersOptions;
-        _dataHeadersOptions.bChildren = true;
-        _dataHeadersOptions.dsID_parent = _addDefaultHeaders(&listResult, pPdStruct);
-        _dataHeadersOptions.dhMode = XBinary::DHMODE_HEADER;
-        _dataHeadersOptions.fileType = dataHeadersOptions.pMemoryMap->fileType;
-        _dataHeadersOptions.nID = STRUCTID_HEADER;
-        _dataHeadersOptions.nLocation = 0;
-        _dataHeadersOptions.locType = XBinary::LT_OFFSET;
+//     if (dataHeadersOptions.nID == STRUCTID_UNKNOWN) {
+//         DATA_HEADERS_OPTIONS _dataHeadersOptions = dataHeadersOptions;
+//         _dataHeadersOptions.bChildren = true;
+//         _dataHeadersOptions.dsID_parent = _addDefaultHeaders(&listResult, pPdStruct);
+//         _dataHeadersOptions.dhMode = XBinary::DHMODE_HEADER;
+//         _dataHeadersOptions.fileType = dataHeadersOptions.pMemoryMap->fileType;
+//         _dataHeadersOptions.nID = STRUCTID_HEADER;
+//         _dataHeadersOptions.nLocation = 0;
+//         _dataHeadersOptions.locType = XBinary::LT_OFFSET;
 
-        listResult.append(getDataHeaders(_dataHeadersOptions, pPdStruct));
-    } else {
-        qint64 nStartOffset = locationToOffset(dataHeadersOptions.pMemoryMap, dataHeadersOptions.locType, dataHeadersOptions.nLocation);
+//         listResult.append(getDataHeaders(_dataHeadersOptions, pPdStruct));
+//     } else {
+//         qint64 nStartOffset = locationToOffset(dataHeadersOptions.pMemoryMap, dataHeadersOptions.locType, dataHeadersOptions.nLocation);
 
-        if (nStartOffset != -1) {
-            if (dataHeadersOptions.nID == STRUCTID_HEADER) {
-                XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
-                dataHeader.nSize = sizeof(XDEX_DEF::HEADER);
+//         if (nStartOffset != -1) {
+//             if (dataHeadersOptions.nID == STRUCTID_HEADER) {
+//                 XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
+//                 dataHeader.nSize = sizeof(XDEX_DEF::HEADER);
 
-                dataHeader.listRecords.append(
-                    getDataRecordDV(offsetof(XDEX_DEF::HEADER, magic), 4, "magic", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE, XDEX::getHeaderMagics(), VL_TYPE_LIST));
-                dataHeader.listRecords.append(
-                    getDataRecordDV(offsetof(XDEX_DEF::HEADER, version), 4, "version", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE, XDEX::getHeaderVersions(), VL_TYPE_LIST));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, checksum), 4, "checksum", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, signature), 20, "signature", VT_BYTE_ARRAY, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, file_size), 4, "file_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, header_size), 4, "header_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecordDV(offsetof(XDEX_DEF::HEADER, endian_tag), 4, "endian_tag", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE,
-                                                              XDEX::getHeaderEndianTags(), VL_TYPE_LIST));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, link_size), 4, "link_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, link_off), 4, "link_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, map_off), 4, "map_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, string_ids_size), 4, "string_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, string_ids_off), 4, "string_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, type_ids_size), 4, "type_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, type_ids_off), 4, "type_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, proto_ids_size), 4, "proto_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, proto_ids_off), 4, "proto_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, field_ids_size), 4, "field_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, field_ids_off), 4, "field_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, method_ids_size), 4, "method_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, method_ids_off), 4, "method_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, class_defs_size), 4, "class_defs_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, class_defs_off), 4, "class_defs_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, data_size), 4, "data_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(
-                    getDataRecord(offsetof(XDEX_DEF::HEADER, data_off), 4, "data_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecordDV(offsetof(XDEX_DEF::HEADER, magic), 4, "magic", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE, XDEX::getHeaderMagics(), VL_TYPE_LIST));
+//                 dataHeader.listRecords.append(
+//                     getDataRecordDV(offsetof(XDEX_DEF::HEADER, version), 4, "version", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE, XDEX::getHeaderVersions(), VL_TYPE_LIST));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, checksum), 4, "checksum", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, signature), 20, "signature", VT_BYTE_ARRAY, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, file_size), 4, "file_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, header_size), 4, "header_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecordDV(offsetof(XDEX_DEF::HEADER, endian_tag), 4, "endian_tag", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE,
+//                                                               XDEX::getHeaderEndianTags(), VL_TYPE_LIST));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, link_size), 4, "link_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, link_off), 4, "link_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, map_off), 4, "map_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, string_ids_size), 4, "string_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, string_ids_off), 4, "string_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, type_ids_size), 4, "type_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, type_ids_off), 4, "type_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, proto_ids_size), 4, "proto_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, proto_ids_off), 4, "proto_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, field_ids_size), 4, "field_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, field_ids_off), 4, "field_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, method_ids_size), 4, "method_ids_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, method_ids_off), 4, "method_ids_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, class_defs_size), 4, "class_defs_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, class_defs_off), 4, "class_defs_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, data_size), 4, "data_size", VT_UINT32, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(
+//                     getDataRecord(offsetof(XDEX_DEF::HEADER, data_off), 4, "data_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
 
-                listResult.append(dataHeader);
+//                 listResult.append(dataHeader);
 
-                if (dataHeadersOptions.bChildren && isPdStructNotCanceled(pPdStruct)) {
-                    if (dataHeadersOptions.nID == STRUCTID_HEADER) {
-                        XDEX_DEF::HEADER header = _readHEADER(nStartOffset);
+//                 if (dataHeadersOptions.bChildren && isPdStructNotCanceled(pPdStruct)) {
+//                     if (dataHeadersOptions.nID == STRUCTID_HEADER) {
+//                         XDEX_DEF::HEADER header = _readHEADER(nStartOffset);
 
-                        // Lambda to append a child section with common boilerplate
-                        auto appendChild = [&](XBinary::DHMODE dhMode, qint32 nStructID, quint32 nOff, qint32 nCount, qint32 nSize) {
-                            if (!nOff || !nCount) return;
-                            DATA_HEADERS_OPTIONS opts = dataHeadersOptions;
-                            opts.bChildren = true;
-                            opts.dsID_parent = dataHeader.dsID;
-                            opts.dhMode = dhMode;
-                            opts.nID = nStructID;
-                            opts.nLocation = dataHeader.nLocation + nOff;
-                            opts.locType = dataHeader.locType;
-                            opts.nCount = nCount;
-                            opts.nSize = nSize;
-                            listResult.append(getDataHeaders(opts, pPdStruct));
-                        };
+//                         // Lambda to append a child section with common boilerplate
+//                         auto appendChild = [&](XBinary::DHMODE dhMode, qint32 nStructID, quint32 nOff, qint32 nCount, qint32 nSize) {
+//                             if (!nOff || !nCount) return;
+//                             DATA_HEADERS_OPTIONS opts = dataHeadersOptions;
+//                             opts.bChildren = true;
+//                             opts.dsID_parent = dataHeader.dsID;
+//                             opts.dhMode = dhMode;
+//                             opts.nID = nStructID;
+//                             opts.nLocation = dataHeader.nLocation + nOff;
+//                             opts.locType = dataHeader.locType;
+//                             opts.nCount = nCount;
+//                             opts.nSize = nSize;
+//                             listResult.append(getDataHeaders(opts, pPdStruct));
+//                         };
 
-                        appendChild(XBinary::DHMODE_TABLE, STRUCTID_STRING_IDS_LIST, header.string_ids_off, header.string_ids_size,
-                                    header.string_ids_size * sizeof(XDEX_DEF::STRING_ITEM_ID));
-                        appendChild(XBinary::DHMODE_TABLE, STRUCTID_TYPE_IDS_LIST, header.type_ids_off, header.type_ids_size,
-                                    header.type_ids_size * sizeof(XDEX_DEF::TYPE_ITEM_ID));
-                        appendChild(XBinary::DHMODE_TABLE, STRUCTID_PROTO_IDS_LIST, header.proto_ids_off, header.proto_ids_size,
-                                    header.proto_ids_size * sizeof(XDEX_DEF::PROTO_ITEM_ID));
-                        appendChild(XBinary::DHMODE_TABLE, STRUCTID_FIELD_IDS_LIST, header.field_ids_off, header.field_ids_size,
-                                    header.field_ids_size * sizeof(XDEX_DEF::FIELD_ITEM_ID));
-                        appendChild(XBinary::DHMODE_TABLE, STRUCTID_METHOD_IDS_LIST, header.method_ids_off, header.method_ids_size,
-                                    header.method_ids_size * sizeof(XDEX_DEF::METHOD_ITEM_ID));
-                        appendChild(XBinary::DHMODE_TABLE, STRUCTID_CLASS_DEFS_LIST, header.class_defs_off, header.class_defs_size,
-                                    header.class_defs_size * sizeof(XDEX_DEF::CLASS_ITEM_DEF));
-                        appendChild(XBinary::DHMODE_HEX, STRUCTID_DATA_LIST, header.data_off, header.data_size, header.data_size);
-                        appendChild(XBinary::DHMODE_HEX, STRUCTID_LINK_LIST, header.link_off, header.link_size, header.link_size);
+//                         appendChild(XBinary::DHMODE_TABLE, STRUCTID_STRING_IDS_LIST, header.string_ids_off, header.string_ids_size,
+//                                     header.string_ids_size * sizeof(XDEX_DEF::STRING_ITEM_ID));
+//                         appendChild(XBinary::DHMODE_TABLE, STRUCTID_TYPE_IDS_LIST, header.type_ids_off, header.type_ids_size,
+//                                     header.type_ids_size * sizeof(XDEX_DEF::TYPE_ITEM_ID));
+//                         appendChild(XBinary::DHMODE_TABLE, STRUCTID_PROTO_IDS_LIST, header.proto_ids_off, header.proto_ids_size,
+//                                     header.proto_ids_size * sizeof(XDEX_DEF::PROTO_ITEM_ID));
+//                         appendChild(XBinary::DHMODE_TABLE, STRUCTID_FIELD_IDS_LIST, header.field_ids_off, header.field_ids_size,
+//                                     header.field_ids_size * sizeof(XDEX_DEF::FIELD_ITEM_ID));
+//                         appendChild(XBinary::DHMODE_TABLE, STRUCTID_METHOD_IDS_LIST, header.method_ids_off, header.method_ids_size,
+//                                     header.method_ids_size * sizeof(XDEX_DEF::METHOD_ITEM_ID));
+//                         appendChild(XBinary::DHMODE_TABLE, STRUCTID_CLASS_DEFS_LIST, header.class_defs_off, header.class_defs_size,
+//                                     header.class_defs_size * sizeof(XDEX_DEF::CLASS_ITEM_DEF));
+//                         appendChild(XBinary::DHMODE_HEX, STRUCTID_DATA_LIST, header.data_off, header.data_size, header.data_size);
+//                         appendChild(XBinary::DHMODE_HEX, STRUCTID_LINK_LIST, header.link_off, header.link_size, header.link_size);
 
-                        if (header.map_off) {
-                            DATA_HEADERS_OPTIONS opts = dataHeadersOptions;
-                            opts.bChildren = true;
-                            opts.dsID_parent = dataHeader.dsID;
-                            opts.dhMode = XBinary::DHMODE_TABLE;
-                            opts.nID = STRUCTID_MAP_LIST;
-                            opts.nLocation = dataHeader.nLocation + header.map_off + sizeof(quint32);
-                            opts.locType = dataHeader.locType;
-                            opts.nCount = qMin((qint32)read_uint32(nStartOffset + header.map_off, (dataHeadersOptions.pMemoryMap->endian == ENDIAN_BIG)), (qint32)1000);
-                            listResult.append(getDataHeaders(opts, pPdStruct));
-                        }
-                    }
-                }
-            } else if (dataHeadersOptions.nID == STRUCTID_STRING_IDS_LIST) {
-                XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
-                dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::STRING_ITEM_ID);
+//                         if (header.map_off) {
+//                             DATA_HEADERS_OPTIONS opts = dataHeadersOptions;
+//                             opts.bChildren = true;
+//                             opts.dsID_parent = dataHeader.dsID;
+//                             opts.dhMode = XBinary::DHMODE_TABLE;
+//                             opts.nID = STRUCTID_MAP_LIST;
+//                             opts.nLocation = dataHeader.nLocation + header.map_off + sizeof(quint32);
+//                             opts.locType = dataHeader.locType;
+//                             opts.nCount = qMin((qint32)read_uint32(nStartOffset + header.map_off, (dataHeadersOptions.pMemoryMap->endian == ENDIAN_BIG)), (qint32)1000);
+//                             listResult.append(getDataHeaders(opts, pPdStruct));
+//                         }
+//                     }
+//                 }
+//             } else if (dataHeadersOptions.nID == STRUCTID_STRING_IDS_LIST) {
+//                 XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
+//                 dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::STRING_ITEM_ID);
 
-                dataHeader.listRecords.append(getDataRecord(0, 4, "string_id", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(0, 4, "string_id", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
 
-                listResult.append(dataHeader);
-            } else if (dataHeadersOptions.nID == STRUCTID_TYPE_IDS_LIST) {
-                XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
-                dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::TYPE_ITEM_ID);
+//                 listResult.append(dataHeader);
+//             } else if (dataHeadersOptions.nID == STRUCTID_TYPE_IDS_LIST) {
+//                 XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
+//                 dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::TYPE_ITEM_ID);
 
-                dataHeader.listRecords.append(getDataRecord(0, 4, "type_id", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(0, 4, "type_id", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
 
-                listResult.append(dataHeader);
-            } else if (dataHeadersOptions.nID == STRUCTID_PROTO_IDS_LIST) {
-                XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
-                dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::PROTO_ITEM_ID);
+//                 listResult.append(dataHeader);
+//             } else if (dataHeadersOptions.nID == STRUCTID_PROTO_IDS_LIST) {
+//                 XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
+//                 dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::PROTO_ITEM_ID);
 
-                dataHeader.listRecords.append(getDataRecord(0, 4, "shorty_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(4, 4, "return_type_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(8, 4, "parameters_off", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(0, 4, "shorty_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(4, 4, "return_type_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(8, 4, "parameters_off", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
 
-                listResult.append(dataHeader);
-            } else if (dataHeadersOptions.nID == STRUCTID_FIELD_IDS_LIST) {
-                XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
-                dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::FIELD_ITEM_ID);
+//                 listResult.append(dataHeader);
+//             } else if (dataHeadersOptions.nID == STRUCTID_FIELD_IDS_LIST) {
+//                 XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
+//                 dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::FIELD_ITEM_ID);
 
-                dataHeader.listRecords.append(getDataRecord(0, 2, "class_idx", VT_UINT16, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(2, 2, "type_idx", VT_UINT16, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(4, 4, "name_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(0, 2, "class_idx", VT_UINT16, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(2, 2, "type_idx", VT_UINT16, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(4, 4, "name_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
 
-                listResult.append(dataHeader);
-            } else if (dataHeadersOptions.nID == STRUCTID_METHOD_IDS_LIST) {
-                XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
-                dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::METHOD_ITEM_ID);
+//                 listResult.append(dataHeader);
+//             } else if (dataHeadersOptions.nID == STRUCTID_METHOD_IDS_LIST) {
+//                 XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
+//                 dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::METHOD_ITEM_ID);
 
-                dataHeader.listRecords.append(getDataRecord(0, 2, "class_idx", VT_UINT16, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(2, 2, "proto_idx", VT_UINT16, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(4, 4, "name_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(0, 2, "class_idx", VT_UINT16, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(2, 2, "proto_idx", VT_UINT16, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(4, 4, "name_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
 
-                listResult.append(dataHeader);
-            } else if (dataHeadersOptions.nID == STRUCTID_CLASS_DEFS_LIST) {
-                XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
-                dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::CLASS_ITEM_DEF);
+//                 listResult.append(dataHeader);
+//             } else if (dataHeadersOptions.nID == STRUCTID_CLASS_DEFS_LIST) {
+//                 XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
+//                 dataHeader.nSize = dataHeadersOptions.nCount * sizeof(XDEX_DEF::CLASS_ITEM_DEF);
 
-                dataHeader.listRecords.append(getDataRecord(0, 4, "class_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(4, 4, "access_flags", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(8, 4, "superclass_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(12, 4, "interfaces_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(16, 4, "source_file_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(20, 4, "annotations_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(24, 4, "class_data_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(28, 4, "static_values_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(0, 4, "class_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(4, 4, "access_flags", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(8, 4, "superclass_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(12, 4, "interfaces_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(16, 4, "source_file_idx", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(20, 4, "annotations_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(24, 4, "class_data_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(28, 4, "static_values_off", VT_UINT32, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
 
-                listResult.append(dataHeader);
-            } else if (dataHeadersOptions.nID == STRUCTID_MAP_LIST) {
-                XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
+//                 listResult.append(dataHeader);
+//             } else if (dataHeadersOptions.nID == STRUCTID_MAP_LIST) {
+//                 XBinary::DATA_HEADER dataHeader = _initDataHeader(dataHeadersOptions, XDEX::structIDToString(dataHeadersOptions.nID));
 
-                dataHeader.listRecords.append(getDataRecord(0, 2, "type", VT_USHORT, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(2, 2, "unused", VT_USHORT, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(4, 4, "size", VT_UINT, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
-                dataHeader.listRecords.append(getDataRecord(8, 4, "offset", VT_UINT, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(0, 2, "type", VT_USHORT, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(2, 2, "unused", VT_USHORT, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(4, 4, "size", VT_UINT, DRF_SIZE, dataHeadersOptions.pMemoryMap->endian));
+//                 dataHeader.listRecords.append(getDataRecord(8, 4, "offset", VT_UINT, DRF_OFFSET, dataHeadersOptions.pMemoryMap->endian));
 
-                listResult.append(dataHeader);
-            }
-        }
-    }
+//                 listResult.append(dataHeader);
+//             }
+//         }
+//     }
 
-    return listResult;
-}
+//     return listResult;
+// }
 
 bool XDEX::isStringPoolSorted(PDSTRUCT *pPdStruct)
 {
