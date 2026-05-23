@@ -1321,7 +1321,8 @@ QList<XBinary::FPART> XDEX::getFileParts(quint32 nFileParts, qint32 nLimit, PDST
 //                 dataHeader.listRecords.append(
 //                     getDataRecordDV(offsetof(XDEX_DEF::HEADER, magic), 4, "magic", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE, XDEX::getHeaderMagics(), VL_TYPE_LIST));
 //                 dataHeader.listRecords.append(
-//                     getDataRecordDV(offsetof(XDEX_DEF::HEADER, version), 4, "version", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE, XDEX::getHeaderVersions(), VL_TYPE_LIST));
+//                     getDataRecordDV(offsetof(XDEX_DEF::HEADER, version), 4, "version", VT_UINT32, DRF_UNKNOWN, ENDIAN_LITTLE, XDEX::getHeaderVersions(),
+//                     VL_TYPE_LIST));
 //                 dataHeader.listRecords.append(
 //                     getDataRecord(offsetof(XDEX_DEF::HEADER, checksum), 4, "checksum", VT_UINT32, DRF_UNKNOWN, dataHeadersOptions.pMemoryMap->endian));
 //                 dataHeader.listRecords.append(
@@ -1411,8 +1412,8 @@ QList<XBinary::FPART> XDEX::getFileParts(quint32 nFileParts, qint32 nLimit, PDST
 //                             opts.nID = STRUCTID_MAP_LIST;
 //                             opts.nLocation = dataHeader.nLocation + header.map_off + sizeof(quint32);
 //                             opts.locType = dataHeader.locType;
-//                             opts.nCount = qMin((qint32)read_uint32(nStartOffset + header.map_off, (dataHeadersOptions.pMemoryMap->endian == ENDIAN_BIG)), (qint32)1000);
-//                             listResult.append(getDataHeaders(opts, pPdStruct));
+//                             opts.nCount = qMin((qint32)read_uint32(nStartOffset + header.map_off, (dataHeadersOptions.pMemoryMap->endian == ENDIAN_BIG)),
+//                             (qint32)1000); listResult.append(getDataHeaders(opts, pPdStruct));
 //                         }
 //                     }
 //                 }
