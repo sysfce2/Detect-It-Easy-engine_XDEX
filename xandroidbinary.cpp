@@ -398,3 +398,122 @@ XBinary::FT XAndroidBinary::getFileType()
 
     return result;
 }
+
+static XBinary::XCONVERT _TABLE_XAndroidBinary_STRUCTID[] = {{XAndroidBinary::STRUCTID_UNKNOWN, "Unknown", QObject::tr("Unknown")},
+                                                             {XAndroidBinary::STRUCTID_HEADER, "HEADER", QString("HEADER")},
+                                                             {XAndroidBinary::STRUCTID_CHUNK, "CHUNK", QString("CHUNK")}};
+
+static XBinary::XIDSTRING _TABLE_XAndroidBinary_ChunkTypes[] = {{XANDROIDBINARY_DEF::RES_NULL_TYPE, "RES_NULL_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_STRING_POOL_TYPE, "RES_STRING_POOL_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_TABLE_TYPE, "RES_TABLE_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_XML_TYPE, "RES_XML_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_XML_START_NAMESPACE_TYPE, "RES_XML_START_NAMESPACE_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_XML_END_NAMESPACE_TYPE, "RES_XML_END_NAMESPACE_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_XML_START_ELEMENT_TYPE, "RES_XML_START_ELEMENT_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_XML_END_ELEMENT_TYPE, "RES_XML_END_ELEMENT_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_XML_CDATA_TYPE, "RES_XML_CDATA_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_XML_RESOURCE_MAP_TYPE, "RES_XML_RESOURCE_MAP_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_TABLE_PACKAGE_TYPE, "RES_TABLE_PACKAGE_TYPE"},
+                                                                {XANDROIDBINARY_DEF::RES_TABLE_TYPE_TYPE, "RES_TABLE_TYPE_TYPE"}};
+
+QString XAndroidBinary::structIDToString(quint32 nID)
+{
+    return XBinary::XCONVERT_idToTransString(nID, _TABLE_XAndroidBinary_STRUCTID, sizeof(_TABLE_XAndroidBinary_STRUCTID) / sizeof(XBinary::XCONVERT));
+}
+
+QString XAndroidBinary::structIDToFtString(quint32 nID)
+{
+    return XBinary::XCONVERT_idToFtString(nID, _TABLE_XAndroidBinary_STRUCTID, sizeof(_TABLE_XAndroidBinary_STRUCTID) / sizeof(XBinary::XCONVERT));
+}
+
+quint32 XAndroidBinary::ftStringToStructID(const QString &sFtString)
+{
+    return XCONVERT_ftStringToId(sFtString, _TABLE_XAndroidBinary_STRUCTID, sizeof(_TABLE_XAndroidBinary_STRUCTID) / sizeof(XBinary::XCONVERT));
+}
+
+QList<XBinary::XFHEADER> XAndroidBinary::getXFHeaders(const XFSTRUCT &xfStruct, PDSTRUCT *pPdStruct)
+{
+    QList<XBinary::XFHEADER> listResult;
+
+    quint32 nStructID = xfStruct.nStructID;
+
+    if (nStructID == STRUCTID_UNKNOWN) {
+        XFSTRUCT _xfStruct = xfStruct;
+        _xfStruct.nStructID = STRUCTID_HEADER;
+        _xfStruct.xLoc = offsetToLoc(0);
+        listResult.append(getXFHeaders(_xfStruct, pPdStruct));
+    } else if (nStructID == STRUCTID_HEADER) {
+        XLOC headerLoc = xfStruct.xLoc;
+        if (headerLoc.locType == LT_UNKNOWN) {
+            headerLoc = offsetToLoc(0);
+        }
+
+        qint64 nHeaderOffset = locToOffset(xfStruct.pMemoryMap, headerLoc);
+
+        if (nHeaderOffset != -1) {
+            XANDROIDBINARY_DEF::HEADER header = readHeader(nHeaderOffset);
+
+            XFHEADER xfHeader = {};
+            xfHeader.sParentTag = xfStruct.sParent;
+            xfHeader.fileType = xfStruct.fileType;
+            xfHeader.structID = static_cast<XBinary::STRUCTID>(STRUCTID_HEADER);
+            xfHeader.xLoc = headerLoc;
+            xfHeader.nSize = header.header_size;
+            xfHeader.xfType = XFTYPE_HEADER;
+            xfHeader.listFields = getXFRecords(xfStruct.fileType, STRUCTID_HEADER, headerLoc);
+            // Field 0 = type
+            xfHeader.listDataSt.append({0, 0, XFDATASTYPE_LIST, _TABLE_XAndroidBinary_ChunkTypes, sizeof(_TABLE_XAndroidBinary_ChunkTypes) / sizeof(XBinary::XIDSTRING)});
+            xfHeader.sTag = xfHeaderToTag(xfHeader, structIDToString(STRUCTID_HEADER), xfHeader.sParentTag);
+            listResult.append(xfHeader);
+
+            if (xfStruct.bIsParent) {
+                XFSTRUCT _xfStruct = xfStruct;
+                _xfStruct.sParent = xfHeader.sTag;
+                _xfStruct.nStructID = STRUCTID_CHUNK;
+                _xfStruct.xLoc = offsetToLoc(nHeaderOffset + header.header_size);
+                listResult.append(getXFHeaders(_xfStruct, pPdStruct));
+            }
+        }
+    } else if (nStructID == STRUCTID_CHUNK) {
+        RECORD record = getRecord(0, pPdStruct);
+
+        if (!record.listChildren.isEmpty()) {
+            XFHEADER xfHeader = {};
+            xfHeader.sParentTag = xfStruct.sParent;
+            xfHeader.fileType = xfStruct.fileType;
+            xfHeader.structID = static_cast<XBinary::STRUCTID>(STRUCTID_CHUNK);
+            xfHeader.xLoc = offsetToLoc(record.listChildren.first().nOffset);
+            xfHeader.xfType = XFTYPE_TABLE;
+            xfHeader.listFields = getXFRecords(xfStruct.fileType, STRUCTID_CHUNK, xfHeader.xLoc);
+            // Field 0 = type
+            xfHeader.listDataSt.append({0, 0, XFDATASTYPE_LIST, _TABLE_XAndroidBinary_ChunkTypes, sizeof(_TABLE_XAndroidBinary_ChunkTypes) / sizeof(XBinary::XIDSTRING)});
+
+            qint32 nNumberOfChunks = record.listChildren.count();
+
+            for (qint32 i = 0; i < nNumberOfChunks; i++) {
+                xfHeader.listRowLocations.append(record.listChildren.at(i).nOffset);
+            }
+
+            xfHeader.sTag = xfHeaderToTag(xfHeader, structIDToString(STRUCTID_CHUNK), xfHeader.sParentTag);
+            listResult.append(xfHeader);
+        }
+    }
+
+    return listResult;
+}
+
+QList<XBinary::XFRECORD> XAndroidBinary::getXFRecords(FT fileType, quint32 nStructID, const XLOC &xLoc)
+{
+    Q_UNUSED(fileType)
+    Q_UNUSED(xLoc)
+
+    QList<XBinary::XFRECORD> listResult;
+
+    if ((nStructID == STRUCTID_HEADER) || (nStructID == STRUCTID_CHUNK)) {
+        listResult.append({"type", (qint32)offsetof(XANDROIDBINARY_DEF::HEADER, type), 2, XFRECORD_FLAG_NONE, VT_UINT16});
+        listResult.append({"header_size", (qint32)offsetof(XANDROIDBINARY_DEF::HEADER, header_size), 2, XFRECORD_FLAG_SIZE, VT_UINT16});
+        listResult.append({"data_size", (qint32)offsetof(XANDROIDBINARY_DEF::HEADER, data_size), 4, XFRECORD_FLAG_SIZE, VT_UINT32});
+    }
+
+    return listResult;
+}
