@@ -63,7 +63,7 @@ public:
     XANDROIDBINARY_DEF::HEADER_XML_ATTRIBUTE readHeaderXmlAttribute(qint64 nOffset);
     XANDROIDBINARY_DEF::HEADER_XML_END readHeaderXmlEnd(qint64 nOffset);
     QList<XANDROIDBINARY_DEF::HEADER> getHeaders(PDSTRUCT *pPdStruct);
-    RECORD getRecord(qint64 nOffset, PDSTRUCT *pPdStruct);
+    RECORD getRecord(qint64 nOffset, PDSTRUCT *pPdStruct, qint32 nDepth = 0);
     QString recordToString(RECORD *pRecord, PDSTRUCT *pPdStruct);
     static QString getDecoded(QIODevice *pDevice, PDSTRUCT *pPdStruct);
     static QString getDecoded(const QString &sFileName, PDSTRUCT *pPdStruct);
@@ -77,6 +77,8 @@ public:
     virtual QList<XFHEADER> getXFHeaders(const XFSTRUCT &xfStruct, PDSTRUCT *pPdStruct) override;
     virtual QList<XFRECORD> getXFRecords(FT fileType, quint32 nStructID, const XLOC &xLoc) override;
 private:
+    QString _readStringPoolString(qint64 nOffset, bool bIsUtf8);
+
     INTERNAL_INFO m_internalInfo;
 
 };

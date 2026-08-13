@@ -100,6 +100,12 @@ enum {
     RES_TABLE_TYPE_TYPE = 0x0201,
     RES_TABLE_TYPE_SPEC_TYPE = 0x0202
 };
+
+// ResStringPool_header.flags
+enum {
+    STRING_POOL_SORTED_FLAG = 1 << 0,
+    STRING_POOL_UTF8_FLAG = 1 << 8,
+};
 }  // namespace XANDROIDBINARY_DEF
 
 #endif  // XANDROIDBINARY_DEF_H
