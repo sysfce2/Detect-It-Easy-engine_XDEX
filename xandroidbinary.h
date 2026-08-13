@@ -77,6 +77,7 @@ public:
     virtual QList<XFHEADER> getXFHeaders(const XFSTRUCT &xfStruct, PDSTRUCT *pPdStruct) override;
     virtual QList<XFRECORD> getXFRecords(FT fileType, quint32 nStructID, const XLOC &xLoc) override;
 private:
+    // Decode one ResStringPool entry (AXML length-varint prefixed); bIsUtf8 selects UTF-8 vs UTF-16.
     QString _readStringPoolString(qint64 nOffset, bool bIsUtf8);
 
     INTERNAL_INFO m_internalInfo;

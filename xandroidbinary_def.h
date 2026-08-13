@@ -103,8 +103,8 @@ enum {
 
 // ResStringPool_header.flags
 enum {
-    STRING_POOL_SORTED_FLAG = 1 << 0,
-    STRING_POOL_UTF8_FLAG = 1 << 8,
+    STRING_POOL_SORTED_FLAG = 1 << 0,  // 0x0001
+    STRING_POOL_UTF8_FLAG = 1 << 8,    // 0x0100
 };
 }  // namespace XANDROIDBINARY_DEF
 
