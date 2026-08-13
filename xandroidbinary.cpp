@@ -44,7 +44,7 @@ bool XAndroidBinary::isValid(QIODevice *pDevice, PDSTRUCT *pPdStruct)
 {
     XAndroidBinary xandroidbinary(pDevice);
 
-    return xandroidbinary.isValid();
+    return xandroidbinary.isValid(pPdStruct);
 }
 
 XBinary::ENDIAN XAndroidBinary::getEndian()
@@ -151,6 +151,12 @@ QList<XANDROIDBINARY_DEF::HEADER> XAndroidBinary::getHeaders(PDSTRUCT *pPdStruct
 
     while ((nCurrentOffset < nTotalSize) && XBinary::isPdStructNotCanceled(pPdStruct)) {
         XANDROIDBINARY_DEF::HEADER record = readHeader(nCurrentOffset);
+
+        // A chunk cannot be smaller than its own header; a zero/short data_size would stall the walk.
+        if (record.data_size < sizeof(XANDROIDBINARY_DEF::HEADER)) {
+            break;
+        }
+
         listHeaders.append(record);
 
         nCurrentOffset += record.data_size;
@@ -159,19 +165,27 @@ QList<XANDROIDBINARY_DEF::HEADER> XAndroidBinary::getHeaders(PDSTRUCT *pPdStruct
     return listHeaders;
 }
 
-XAndroidBinary::RECORD XAndroidBinary::getRecord(qint64 nOffset, PDSTRUCT *pPdStruct)
+XAndroidBinary::RECORD XAndroidBinary::getRecord(qint64 nOffset, PDSTRUCT *pPdStruct, qint32 nDepth)
 {
     RECORD result = {};
+
+    // Chunk nesting in AXML/ARSC is shallow; cap depth to prevent stack overflow on crafted input.
+    const qint32 nMaxDepth = 128;
+    if (nDepth > nMaxDepth) {
+        return result;
+    }
 
     result.header = readHeader(nOffset);
     result.nOffset = nOffset;
 
     if ((result.header.type == XANDROIDBINARY_DEF::RES_NULL_TYPE) || (result.header.type == XANDROIDBINARY_DEF::RES_XML_TYPE) ||
         (result.header.type == XANDROIDBINARY_DEF::RES_TABLE_TYPE) || (result.header.type == XANDROIDBINARY_DEF::RES_TABLE_PACKAGE_TYPE)) {
+        // header.data_size is the chunk's own (relative) size; the child window ends at an ABSOLUTE offset.
+        qint64 nEnd = qMin<qint64>(nOffset + (qint64)result.header.data_size, getSize());
         qint64 nCurrentOffset = nOffset + result.header.header_size;
 
-        while ((nCurrentOffset < result.header.data_size) && XBinary::isPdStructNotCanceled(pPdStruct)) {
-            RECORD record = getRecord(nCurrentOffset, pPdStruct);
+        while ((nCurrentOffset < nEnd) && XBinary::isPdStructNotCanceled(pPdStruct)) {
+            RECORD record = getRecord(nCurrentOffset, pPdStruct, nDepth + 1);
 
             if (record.header.data_size == 0) {
                 break;
@@ -184,6 +198,50 @@ XAndroidBinary::RECORD XAndroidBinary::getRecord(qint64 nOffset, PDSTRUCT *pPdSt
     }
 
     return result;
+}
+
+QString XAndroidBinary::_readStringPoolString(qint64 nOffset, bool bIsUtf8)
+{
+    QString sResult;
+
+    if (bIsUtf8) {
+        qint64 nPos = nOffset;
+
+        // utf16 char count (1 or 2 bytes) - not needed for the byte read, skip it
+        quint8 nLen16 = read_uint8(nPos);
+        nPos += 1;
+        if (nLen16 & 0x80) {
+            nPos += 1;
+        }
+
+        // utf8 byte count (1 or 2 bytes)
+        quint8 nLen8a = read_uint8(nPos);
+        nPos += 1;
+        quint32 nByteLen = nLen8a;
+        if (nLen8a & 0x80) {
+            quint8 nLen8b = read_uint8(nPos);
+            nPos += 1;
+            nByteLen = ((quint32)(nLen8a & 0x7F) << 8) | nLen8b;
+        }
+
+        sResult = read_utf8String(nPos, nByteLen);
+    } else {
+        qint64 nPos = nOffset;
+
+        // utf16 code-unit count (1 or 2 units)
+        quint16 nUnit0 = read_uint16(nPos);
+        nPos += 2;
+        quint32 nUnitLen = nUnit0;
+        if (nUnit0 & 0x8000) {
+            quint16 nUnit1 = read_uint16(nPos);
+            nPos += 2;
+            nUnitLen = ((quint32)(nUnit0 & 0x7FFF) << 16) | nUnit1;
+        }
+
+        sResult = read_unicodeString(nPos, nUnitLen);
+    }
+
+    return sResult;
 }
 
 QString XAndroidBinary::recordToString(XAndroidBinary::RECORD *pRecord, PDSTRUCT *pPdStruct)
@@ -209,19 +267,25 @@ QString XAndroidBinary::recordToString(XAndroidBinary::RECORD *pRecord, PDSTRUCT
                 qint64 nCurrentOffset = pRecord->listChildren.at(i).nOffset + headerStringPool.header.header_size;
                 qint64 nStringsDataOffset = pRecord->listChildren.at(i).nOffset + headerStringPool.stringsStart;
 
-                for (quint32 j = 0; (j < headerStringPool.stringCount) && XBinary::isPdStructNotCanceled(pPdStruct); j++) {
+                // Encoding is selected only by UTF8_FLAG, not by the whole flags word (bit 0 is SORTED_FLAG).
+                bool bIsUtf8 = (headerStringPool.flags & XANDROIDBINARY_DEF::STRING_POOL_UTF8_FLAG) != 0;
+
+                // Clamp the declared count to the number of 4-byte offset entries that can fit in the file.
+                const qint64 nTotalSize = getSize();
+                quint32 nStringCount = headerStringPool.stringCount;
+                if (nCurrentOffset < nTotalSize) {
+                    qint64 nMaxEntries = (nTotalSize - nCurrentOffset) / (qint64)sizeof(quint32);
+                    if ((qint64)nStringCount > nMaxEntries) {
+                        nStringCount = (nMaxEntries > 0) ? (quint32)nMaxEntries : 0;
+                    }
+                } else {
+                    nStringCount = 0;
+                }
+
+                for (quint32 j = 0; (j < nStringCount) && XBinary::isPdStructNotCanceled(pPdStruct); j++) {
                     qint64 nStringOffset = nStringsDataOffset + read_int32(nCurrentOffset + j * sizeof(quint32));
 
-                    QString sString;
-                    quint16 nStringSize = read_uint16(nStringOffset);
-
-                    if (headerStringPool.flags) {
-                        sString = read_ansiString(nStringOffset + sizeof(quint16), nStringSize);
-                    } else {
-                        sString = read_unicodeString(nStringOffset + sizeof(quint16), nStringSize);
-                    }
-
-                    listStrings.append(sString);
+                    listStrings.append(_readStringPoolString(nStringOffset, bIsUtf8));
                 }
             } else if (pRecord->listChildren.at(i).header.type == XANDROIDBINARY_DEF::RES_XML_RESOURCE_MAP_TYPE) {
                 qint32 nNumberOfResources = (pRecord->listChildren.at(i).header.data_size - sizeof(XANDROIDBINARY_DEF::HEADER)) / 4;
@@ -243,8 +307,11 @@ QString XAndroidBinary::recordToString(XAndroidBinary::RECORD *pRecord, PDSTRUCT
 
                 xml.writeNamespace(stackURI.top(), stackPrefix.top());
             } else if (pRecord->listChildren.at(i).header.type == XANDROIDBINARY_DEF::RES_XML_END_NAMESPACE_TYPE) {
-                stackPrefix.pop();
-                stackURI.pop();
+                // Guard against an unbalanced END-namespace chunk (crafted AXML) popping an empty stack.
+                if (!stackPrefix.isEmpty() && !stackURI.isEmpty()) {
+                    stackPrefix.pop();
+                    stackURI.pop();
+                }
             } else if (pRecord->listChildren.at(i).header.type == XANDROIDBINARY_DEF::RES_XML_START_ELEMENT_TYPE) {
                 XANDROIDBINARY_DEF::HEADER_XML_START headerXmlStart = readHeaderXmlStart(pRecord->listChildren.at(i).nOffset);
 
