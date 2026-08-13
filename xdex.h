@@ -42,6 +42,27 @@ public:
         // TODO the second module ...
     };
 
+    // Decoded encoded_value (non-recursive: arrays/annotations expose a nested offset instead of by-value children, so this stays Qt6-safe).
+    struct ENCODED_VALUE {
+        quint8 nValueType;    // 0x00..0x1f
+        quint8 nValueArg;     // high 3 bits of the header byte
+        quint64 nValueRaw;    // assembled little-endian payload: scalar bits / pool index / bool (0/1)
+        qint64 nNestedOffset; // VALUE_ARRAY / VALUE_ANNOTATION: file offset of the nested structure; else -1
+        qint64 nSize;         // total bytes consumed by this encoded_value
+    };
+
+    // Parsed class_data_item (encoded fields/methods with delta-decoded indices).
+    struct CLASS_DATA {
+        quint32 static_fields_size;
+        quint32 instance_fields_size;
+        quint32 direct_methods_size;
+        quint32 virtual_methods_size;
+        QList<XDEX_DEF::ENCODED_FIELD> listStaticFields;
+        QList<XDEX_DEF::ENCODED_FIELD> listInstanceFields;
+        QList<XDEX_DEF::ENCODED_METHOD> listDirectMethods;
+        QList<XDEX_DEF::ENCODED_METHOD> listVirtualMethods;
+    };
+
     enum STRUCTID {
         STRUCTID_UNKNOWN = 0,
         STRUCTID_HEADER,
@@ -155,6 +176,42 @@ public:
     QList<XDEX_DEF::CALL_SITE_ITEM_ID> getList_CALL_SITE_ITEM_ID(QList<XDEX_DEF::MAP_ITEM> *pListMapItems, PDSTRUCT *pPdStruct = nullptr);
     QList<XDEX_DEF::METHOD_HANDLE_ITEM> getList_METHOD_HANDLE_ITEM(QList<XDEX_DEF::MAP_ITEM> *pListMapItems, PDSTRUCT *pPdStruct = nullptr);
 
+    // MUTF-8 (Modified UTF-8) decoding — DEX/Java string encoding: 0xC0 0x80 null and CESU-8 surrogate pairs.
+    static QString _mutf8ToUnicode(const char *pData, qint32 nSize);
+    static QString _readMUTF8String(const char *pData, qint32 nMaxSize);
+    static QString _readMUTF8String(qint64 nOffset, char *pData, qint32 nDataSize, qint32 nDataOffset);
+    QString _readMUTF8String(qint64 nOffset);
+
+    // Variable-length data-section structures.
+    CLASS_DATA getClassData(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr);
+    XDEX_DEF::CODE_ITEM readCodeItem(qint64 nOffset);
+    QList<quint32> getProtoParameterTypes(quint32 nProtoIndex, QList<XDEX_DEF::MAP_ITEM> *pMapItems, PDSTRUCT *pPdStruct = nullptr);
+
+    // Exact byte sizes of variable-length data items (device-walked, cancelable, file-bounded).
+    qint64 getStringDataItemSize(qint64 nOffset);
+    qint64 getDebugInfoItemSize(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr);
+    qint64 getClassDataItemSize(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr);
+    qint64 getCodeItemSize(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr);
+    qint64 getEncodedValueSize(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr, qint32 nDepth = 0);
+    qint64 getEncodedArrayItemSize(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr, qint32 nDepth = 0);
+    qint64 getEncodedAnnotationSize(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr, qint32 nDepth = 0);
+    qint64 getAnnotationItemSize(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr);
+    qint64 getAnnotationsDirectoryItemSize(qint64 nOffset);
+
+    static QString getAccessFlagsString(quint32 nAccessFlags);
+
+    // Human-readable Java descriptor / signature rendering.
+    static QString descriptorToString(const QString &sDescriptor);
+    QString getClassString(quint32 nTypeIndex, QList<XDEX_DEF::MAP_ITEM> *pMapItems, PDSTRUCT *pPdStruct = nullptr);
+    QString getProtoString(quint32 nProtoIndex, QList<XDEX_DEF::MAP_ITEM> *pMapItems, PDSTRUCT *pPdStruct = nullptr);
+    QString getMethodString(quint32 nMethodIndex, QList<XDEX_DEF::MAP_ITEM> *pMapItems, PDSTRUCT *pPdStruct = nullptr);
+    QString getFieldString(quint32 nFieldIndex, QList<XDEX_DEF::MAP_ITEM> *pMapItems, PDSTRUCT *pPdStruct = nullptr);
+
+    // Encoded value decoding (annotations, static field initializers).
+    qint64 readEncodedValue(qint64 nOffset, ENCODED_VALUE *pValue, PDSTRUCT *pPdStruct = nullptr, qint32 nDepth = 0);
+    QList<ENCODED_VALUE> readEncodedArray(qint64 nOffset, PDSTRUCT *pPdStruct = nullptr);
+    static QString encodedValueToString(const ENCODED_VALUE &encodedValue);
+
     QList<QString> getStrings(QList<XDEX_DEF::MAP_ITEM> *pMapItems, PDSTRUCT *pPdStruct = nullptr);
     QString _getString(XDEX_DEF::MAP_ITEM map_stringIdItem, quint32 nIndex, bool bIsBigEndian);
     QString _getString(XDEX_DEF::MAP_ITEM map_stringIdItem, quint32 nIndex, bool bIsBigEndian, char *pData, qint32 nDataSize, qint32 nDataOffset);
@@ -200,6 +257,10 @@ public:
 
 private:
     bool _hasUnicodeNameInList(const QList<quint32> &nameIndices, QList<QString> *pListStrings, PDSTRUCT *pPdStruct) const;
+    // Signed LEB128 decode (returns value; byte-size via out-param). Used for encoded_catch_handler.size.
+    qint64 _readSleb128(qint64 nOffset, qint32 nMax, qint32 *pnByteSize);
+    // Resolve a type-pool index to its raw Java descriptor ("Lpkg/Cls;", "[I", "V", ...).
+    QString _typeIndexToDescriptor(quint32 nTypeIndex, XDEX_DEF::MAP_ITEM *pMapStrings, XDEX_DEF::MAP_ITEM *pMapTypes);
 private:
     INTERNAL_INFO m_internalInfo;
 

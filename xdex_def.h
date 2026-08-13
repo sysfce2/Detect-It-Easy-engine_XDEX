@@ -107,6 +107,35 @@ struct METHOD_HANDLE_ITEM {
     quint16 unused2;
 };
 
+// Parsed encoded_field / encoded_method (class_data_item); indices are absolute (delta-decoded).
+struct ENCODED_FIELD {
+    quint32 field_idx;
+    quint32 access_flags;
+};
+
+struct ENCODED_METHOD {
+    quint32 method_idx;
+    quint32 access_flags;
+    quint32 code_off;
+};
+
+// code_item fixed header (16 bytes); followed by insns[], padding, tries[], handlers.
+struct CODE_ITEM {
+    quint16 registers_size;
+    quint16 ins_size;
+    quint16 outs_size;
+    quint16 tries_size;
+    quint32 debug_info_off;
+    quint32 insns_size;  // in 16-bit code units
+};
+
+// try_item (8 bytes on disk)
+struct TRY_ITEM {
+    quint32 start_addr;
+    quint16 insn_count;
+    quint16 handler_off;
+};
+
 const quint16 TYPE_HEADER_ITEM = 0x0000;
 const quint16 TYPE_STRING_ID_ITEM = 0x0001;
 const quint16 TYPE_TYPE_ID_ITEM = 0x0002;
@@ -139,5 +168,24 @@ const quint16 METHOD_HANDLE_TYPE_INVOKE_INSTANCE = 0x05;
 const quint16 METHOD_HANDLE_TYPE_INVOKE_CONSTRUCTOR = 0x06;
 const quint16 METHOD_HANDLE_TYPE_INVOKE_DIRECT = 0x07;
 const quint16 METHOD_HANDLE_TYPE_INVOKE_INTERFACE = 0x08;
+
+// access_flags bits (class / field / method); some bits are context-dependent (see comments).
+const quint32 ACC_PUBLIC = 0x00001;
+const quint32 ACC_PRIVATE = 0x00002;
+const quint32 ACC_PROTECTED = 0x00004;
+const quint32 ACC_STATIC = 0x00008;
+const quint32 ACC_FINAL = 0x00010;
+const quint32 ACC_SYNCHRONIZED = 0x00020;
+const quint32 ACC_VOLATILE = 0x00040;  // field; BRIDGE for methods
+const quint32 ACC_TRANSIENT = 0x00080;  // field; VARARGS for methods
+const quint32 ACC_NATIVE = 0x00100;
+const quint32 ACC_INTERFACE = 0x00200;
+const quint32 ACC_ABSTRACT = 0x00400;
+const quint32 ACC_STRICT = 0x00800;
+const quint32 ACC_SYNTHETIC = 0x01000;
+const quint32 ACC_ANNOTATION = 0x02000;
+const quint32 ACC_ENUM = 0x04000;
+const quint32 ACC_CONSTRUCTOR = 0x10000;
+const quint32 ACC_DECLARED_SYNCHRONIZED = 0x20000;
 }  // namespace XDEX_DEF
 #endif  // XDEX_DEF_H
