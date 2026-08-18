@@ -99,6 +99,14 @@ public:
     virtual QString getMIMEString() override;
     virtual QString getInfo(PDSTRUCT *pPdStruct = nullptr) override;
 
+    virtual bool isImportPresent() override;
+    virtual bool isExportPresent() override;
+    virtual bool isSymbolsPresent() override;
+
+    virtual QVector<XIMPORT_STRUCT> getImportStructs() override;
+    virtual QVector<XEXPORT_STRUCT> getExportStructs() override;
+    virtual QVector<XSYMBOL_STRUCT> getSymbolStructs() override;
+
     virtual QList<MAPMODE> getMapModesList() override;
     virtual _MEMORY_MAP getMemoryMap(MAPMODE mapMode = MAPMODE_UNKNOWN, PDSTRUCT *pPdStruct = nullptr) override;
     virtual qint64 getFileFormatSize(PDSTRUCT *pPdStruct) override;
@@ -256,6 +264,7 @@ public:
     virtual XBinary *createInstance(QIODevice *pDevice, bool bIsImage = false, XADDR nModuleAddress = -1) override;
 
 private:
+    QVector<XSYMBOL_STRUCT> _getSymbolStructs();
     bool _hasUnicodeNameInList(const QList<quint32> &nameIndices, QList<QString> *pListStrings, PDSTRUCT *pPdStruct) const;
     // Signed LEB128 decode (returns value; byte-size via out-param). Used for encoded_catch_handler.size.
     qint64 _readSleb128(qint64 nOffset, qint32 nMax, qint32 *pnByteSize);

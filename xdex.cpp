@@ -282,6 +282,196 @@ QString XDEX::getInfo(PDSTRUCT *pPdStruct)
     return sResult;
 }
 
+bool XDEX::isImportPresent()
+{
+    const QVector<XSYMBOL_STRUCT> listSymbols = _getSymbolStructs();
+
+    for (const XSYMBOL_STRUCT &symbol : listSymbols) {
+        if (symbol.symbolType == SYMBOL_TYPE_IMPORT) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool XDEX::isExportPresent()
+{
+    const QVector<XSYMBOL_STRUCT> listSymbols = _getSymbolStructs();
+
+    for (const XSYMBOL_STRUCT &symbol : listSymbols) {
+        if (symbol.symbolType == SYMBOL_TYPE_EXPORT) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool XDEX::isSymbolsPresent()
+{
+    return getHeader_method_ids_size() != 0;
+}
+
+QVector<XBinary::XSYMBOL_STRUCT> XDEX::_getSymbolStructs()
+{
+    struct DEFINED_METHOD {
+        quint32 nAccessFlags;
+        quint32 nCodeOffset;
+    };
+
+    QVector<XSYMBOL_STRUCT> listResult;
+    PDSTRUCT pdStruct = XBinary::createPdStruct();
+    QList<XDEX_DEF::MAP_ITEM> listMapItems = getMapItems(&pdStruct);
+
+    if (listMapItems.isEmpty()) {
+        return listResult;
+    }
+
+    const XDEX_DEF::MAP_ITEM mapMethod = getMapItem(XDEX_DEF::TYPE_METHOD_ID_ITEM, &listMapItems, &pdStruct);
+    const QList<XDEX_DEF::METHOD_ITEM_ID> listMethods = getList_METHOD_ITEM_ID(&listMapItems, &pdStruct);
+
+    if ((mapMethod.nOffset == 0) || listMethods.isEmpty()) {
+        return listResult;
+    }
+
+    QMap<quint32, DEFINED_METHOD> mapDefinedMethods;
+    const QList<XDEX_DEF::CLASS_ITEM_DEF> listClasses = getList_CLASS_ITEM_DEF(&listMapItems, &pdStruct);
+
+    for (const XDEX_DEF::CLASS_ITEM_DEF &classItem : listClasses) {
+        if (classItem.class_data_off == 0) {
+            continue;
+        }
+
+        const CLASS_DATA classData = getClassData(classItem.class_data_off, &pdStruct);
+        QList<XDEX_DEF::ENCODED_METHOD> listDefined = classData.listDirectMethods;
+        listDefined.append(classData.listVirtualMethods);
+
+        for (const XDEX_DEF::ENCODED_METHOD &method : listDefined) {
+            if (method.method_idx < static_cast<quint32>(listMethods.count())) {
+                DEFINED_METHOD definedMethod = {};
+                definedMethod.nAccessFlags = method.access_flags;
+                definedMethod.nCodeOffset = method.code_off;
+                mapDefinedMethods.insert(method.method_idx, definedMethod);
+            }
+        }
+    }
+
+    const qint32 nNumberOfMethods = listMethods.count();
+    listResult.reserve(nNumberOfMethods);
+
+    for (qint32 i = 0; i < nNumberOfMethods; ++i) {
+        XSYMBOL_STRUCT record = {};
+        record.nOffset = mapMethod.nOffset + static_cast<qint64>(i) * sizeof(XDEX_DEF::METHOD_ITEM_ID);
+        record.sName = getMethodString(static_cast<quint32>(i), &listMapItems, &pdStruct);
+
+        const auto it = mapDefinedMethods.constFind(static_cast<quint32>(i));
+        if (it == mapDefinedMethods.constEnd()) {
+            record.symbolType = SYMBOL_TYPE_IMPORT;
+        } else {
+            const DEFINED_METHOD &definedMethod = it.value();
+            if (definedMethod.nCodeOffset != 0) {
+                record.nSize = getCodeItemSize(definedMethod.nCodeOffset, &pdStruct);
+                record.nAddress = offsetToAddress(definedMethod.nCodeOffset);
+            }
+
+            if (definedMethod.nAccessFlags & (XDEX_DEF::ACC_PUBLIC | XDEX_DEF::ACC_PROTECTED)) {
+                record.symbolType = SYMBOL_TYPE_EXPORT;
+            } else {
+                record.symbolType = SYMBOL_TYPE_LABEL;
+            }
+        }
+
+        listResult.append(record);
+    }
+
+    return listResult;
+}
+
+QVector<XBinary::XSYMBOL_STRUCT> XDEX::getSymbolStructs()
+{
+    return _getSymbolStructs();
+}
+
+QVector<XBinary::XIMPORT_STRUCT> XDEX::getImportStructs()
+{
+    QVector<XIMPORT_STRUCT> listResult;
+    PDSTRUCT pdStruct = XBinary::createPdStruct();
+    QList<XDEX_DEF::MAP_ITEM> listMapItems = getMapItems(&pdStruct);
+
+    if (listMapItems.isEmpty()) {
+        return listResult;
+    }
+
+    const XDEX_DEF::MAP_ITEM mapMethod = getMapItem(XDEX_DEF::TYPE_METHOD_ID_ITEM, &listMapItems, &pdStruct);
+    const QList<XDEX_DEF::METHOD_ITEM_ID> listMethods = getList_METHOD_ITEM_ID(&listMapItems, &pdStruct);
+    const QVector<XSYMBOL_STRUCT> listSymbols = _getSymbolStructs();
+
+    for (const XSYMBOL_STRUCT &symbol : listSymbols) {
+        if ((symbol.symbolType != SYMBOL_TYPE_IMPORT) || (symbol.nOffset < mapMethod.nOffset)) {
+            continue;
+        }
+
+        const qint64 nIndex = (symbol.nOffset - mapMethod.nOffset) / sizeof(XDEX_DEF::METHOD_ITEM_ID);
+        if ((nIndex < 0) || (nIndex >= listMethods.count())) {
+            continue;
+        }
+
+        const XDEX_DEF::METHOD_ITEM_ID &method = listMethods.at(static_cast<qint32>(nIndex));
+        XIMPORT_STRUCT record = {};
+        record.nOffset = symbol.nOffset;
+        record.nSize = symbol.nSize;
+        record.nAddress = symbol.nAddress;
+        record.sLibrary = getClassString(method.class_idx, &listMapItems, &pdStruct);
+        record.sFunction = symbol.sName;
+        const QString sPrefix = record.sLibrary + QLatin1Char('.');
+        if (record.sFunction.startsWith(sPrefix)) {
+            record.sFunction.remove(0, sPrefix.size());
+        }
+        record.nOrdinal = static_cast<qint32>(nIndex);
+
+        listResult.append(record);
+    }
+
+    return listResult;
+}
+
+QVector<XBinary::XEXPORT_STRUCT> XDEX::getExportStructs()
+{
+    QVector<XEXPORT_STRUCT> listResult;
+    PDSTRUCT pdStruct = XBinary::createPdStruct();
+    QList<XDEX_DEF::MAP_ITEM> listMapItems = getMapItems(&pdStruct);
+
+    if (listMapItems.isEmpty()) {
+        return listResult;
+    }
+
+    const XDEX_DEF::MAP_ITEM mapMethod = getMapItem(XDEX_DEF::TYPE_METHOD_ID_ITEM, &listMapItems, &pdStruct);
+    const QVector<XSYMBOL_STRUCT> listSymbols = _getSymbolStructs();
+
+    for (const XSYMBOL_STRUCT &symbol : listSymbols) {
+        if ((symbol.symbolType != SYMBOL_TYPE_EXPORT) || (symbol.nOffset < mapMethod.nOffset)) {
+            continue;
+        }
+
+        const qint64 nIndex = (symbol.nOffset - mapMethod.nOffset) / sizeof(XDEX_DEF::METHOD_ITEM_ID);
+        if ((nIndex < 0) || (nIndex > 0x7FFFFFFF)) {
+            continue;
+        }
+
+        XEXPORT_STRUCT record = {};
+        record.nOffset = symbol.nOffset;
+        record.nSize = symbol.nSize;
+        record.nAddress = symbol.nAddress;
+        record.sFunction = symbol.sName;
+        record.nOrdinal = static_cast<qint32>(nIndex);
+
+        listResult.append(record);
+    }
+
+    return listResult;
+}
+
 QList<XBinary::MAPMODE> XDEX::getMapModesList()
 {
     QList<MAPMODE> listResult;

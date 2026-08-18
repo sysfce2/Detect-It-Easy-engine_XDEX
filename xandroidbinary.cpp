@@ -466,6 +466,47 @@ XBinary::FT XAndroidBinary::getFileType()
     return result;
 }
 
+QVector<XBinary::XRESOURCE_STRUCT> XAndroidBinary::getResourceStructs()
+{
+    QVector<XRESOURCE_STRUCT> listResult;
+    const RECORD root = getRecord(0, nullptr);
+    QList<RECORD> listPending = root.listChildren;
+    qint32 nGuard = 0;
+
+    auto chunkTypeToName = [](quint16 nType) -> QString {
+        switch (nType) {
+            case XANDROIDBINARY_DEF::RES_STRING_POOL_TYPE: return QString("String pool");
+            case XANDROIDBINARY_DEF::RES_XML_RESOURCE_MAP_TYPE: return QString("Resource map");
+            case XANDROIDBINARY_DEF::RES_TABLE_PACKAGE_TYPE: return QString("Resource package");
+            case XANDROIDBINARY_DEF::RES_TABLE_TYPE_TYPE: return QString("Resource type");
+            case XANDROIDBINARY_DEF::RES_TABLE_TYPE_SPEC_TYPE: return QString("Resource type specification");
+            default: return QString();
+        }
+    };
+
+    while (!listPending.isEmpty() && (nGuard++ < 0x10000)) {
+        const RECORD record = listPending.takeFirst();
+        listPending.append(record.listChildren);
+
+        const QString sName = chunkTypeToName(record.header.type);
+        if (sName.isEmpty() || (record.header.data_size < sizeof(XANDROIDBINARY_DEF::HEADER)) ||
+            !checkOffsetSize(record.nOffset, record.header.data_size)) {
+            continue;
+        }
+
+        XRESOURCE_STRUCT resource = {};
+        resource.nOffset = record.nOffset;
+        resource.nSize = record.header.data_size;
+        resource.nAddress = offsetToAddress(record.nOffset);
+        resource.sName = sName;
+        resource.nType = record.header.type;
+        resource.nID = listResult.count() + 1;
+        listResult.append(resource);
+    }
+
+    return listResult;
+}
+
 static XBinary::XCONVERT _TABLE_XAndroidBinary_STRUCTID[] = {{XAndroidBinary::STRUCTID_UNKNOWN, "Unknown", QObject::tr("Unknown")},
                                                              {XAndroidBinary::STRUCTID_HEADER, "HEADER", QString("HEADER")},
                                                              {XAndroidBinary::STRUCTID_CHUNK, "CHUNK", QString("CHUNK")}};
