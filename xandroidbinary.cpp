@@ -489,8 +489,7 @@ QVector<XBinary::XRESOURCE_STRUCT> XAndroidBinary::getResourceStructs()
         listPending.append(record.listChildren);
 
         const QString sName = chunkTypeToName(record.header.type);
-        if (sName.isEmpty() || (record.header.data_size < sizeof(XANDROIDBINARY_DEF::HEADER)) ||
-            !checkOffsetSize(record.nOffset, record.header.data_size)) {
+        if (sName.isEmpty() || (record.header.data_size < sizeof(XANDROIDBINARY_DEF::HEADER)) || !checkOffsetSize(record.nOffset, record.header.data_size)) {
             continue;
         }
 
@@ -618,8 +617,7 @@ bool XAndroidBinary::handleInternalInfo(PDSTRUCT *pPdStruct)
         bResult = XBinary::handleInternalInfo(pPdStruct);
 
         if (bResult) {
-            static_cast<XBinary::INTERNAL_INFO &>(m_internalInfo) =
-                *static_cast<XBinary::INTERNAL_INFO *>(XBinary::getInternalInfo(pPdStruct));
+            static_cast<XBinary::INTERNAL_INFO &>(m_internalInfo) = *static_cast<XBinary::INTERNAL_INFO *>(XBinary::getInternalInfo(pPdStruct));
             setIsInternalInfoHandled(true);
         }
     }

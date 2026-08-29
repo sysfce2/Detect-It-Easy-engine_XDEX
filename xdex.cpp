@@ -2295,13 +2295,13 @@ QString XDEX::encodedValueToString(const ENCODED_VALUE &encodedValue)
     quint64 nRaw = encodedValue.nValueRaw;
 
     switch (encodedValue.nValueType) {
-        case 0x00: return QString::number((qint64)signExtendLE(nRaw, 1));  // BYTE
+        case 0x00: return QString::number((qint64)signExtendLE(nRaw, 1));       // BYTE
         case 0x02: return QString::number((qint64)signExtendLE(nRaw, nBytes));  // SHORT
-        case 0x03: return QString::number(nRaw);  // CHAR (unsigned code unit)
+        case 0x03: return QString::number(nRaw);                                // CHAR (unsigned code unit)
         case 0x04: return QString::number((qint64)signExtendLE(nRaw, nBytes));  // INT
         case 0x06: return QString::number((qint64)signExtendLE(nRaw, nBytes));  // LONG
-        case 0x10: {  // FLOAT (bytes are the most-significant bytes, zero-extended to the right)
-            qint32 nFloatBytes = qBound(1, nBytes, 4);  // a crafted value_arg can exceed 4; clamp to avoid a negative shift (UB)
+        case 0x10: {                                                            // FLOAT (bytes are the most-significant bytes, zero-extended to the right)
+            qint32 nFloatBytes = qBound(1, nBytes, 4);                          // a crafted value_arg can exceed 4; clamp to avoid a negative shift (UB)
             quint32 nBits = (quint32)(nRaw << (8 * (4 - nFloatBytes)));
             float fValue = 0.0f;
             memcpy(&fValue, &nBits, sizeof(fValue));
@@ -2314,16 +2314,16 @@ QString XDEX::encodedValueToString(const ENCODED_VALUE &encodedValue)
             memcpy(&dValue, &nBits, sizeof(dValue));
             return QString::number(dValue);
         }
-        case 0x15: return QString("proto@%1").arg(nRaw);  // METHOD_TYPE
-        case 0x16: return QString("methodhandle@%1").arg(nRaw);  // METHOD_HANDLE
-        case 0x17: return QString("string@%1").arg(nRaw);  // STRING
-        case 0x18: return QString("type@%1").arg(nRaw);  // TYPE
-        case 0x19: return QString("field@%1").arg(nRaw);  // FIELD
-        case 0x1A: return QString("method@%1").arg(nRaw);  // METHOD
-        case 0x1B: return QString("enum@%1").arg(nRaw);  // ENUM
-        case 0x1C: return QStringLiteral("{...}");  // ARRAY
-        case 0x1D: return QStringLiteral("@annotation");  // ANNOTATION
-        case 0x1E: return QStringLiteral("null");  // NULL
+        case 0x15: return QString("proto@%1").arg(nRaw);                                   // METHOD_TYPE
+        case 0x16: return QString("methodhandle@%1").arg(nRaw);                            // METHOD_HANDLE
+        case 0x17: return QString("string@%1").arg(nRaw);                                  // STRING
+        case 0x18: return QString("type@%1").arg(nRaw);                                    // TYPE
+        case 0x19: return QString("field@%1").arg(nRaw);                                   // FIELD
+        case 0x1A: return QString("method@%1").arg(nRaw);                                  // METHOD
+        case 0x1B: return QString("enum@%1").arg(nRaw);                                    // ENUM
+        case 0x1C: return QStringLiteral("{...}");                                         // ARRAY
+        case 0x1D: return QStringLiteral("@annotation");                                   // ANNOTATION
+        case 0x1E: return QStringLiteral("null");                                          // NULL
         case 0x1F: return (nRaw != 0) ? QStringLiteral("true") : QStringLiteral("false");  // BOOLEAN
     }
 
@@ -2571,17 +2571,23 @@ QList<XBinary::FPART> XDEX::getFileParts(quint32 nFileParts, qint32 nLimit, PDST
     if (nFileParts & FILEPART_REGION) {
         if (appendDexRegion(&listResult, QStringLiteral("link"), header.link_off, header.link_size, nLimit)) return listResult;
         if (appendDexRegion(&listResult, QStringLiteral("string_ids"), header.string_ids_off,
-                            static_cast<qint64>(header.string_ids_size) * sizeof(XDEX_DEF::STRING_ITEM_ID), nLimit)) return listResult;
-        if (appendDexRegion(&listResult, QStringLiteral("type_ids"), header.type_ids_off,
-                            static_cast<qint64>(header.type_ids_size) * sizeof(XDEX_DEF::TYPE_ITEM_ID), nLimit)) return listResult;
-        if (appendDexRegion(&listResult, QStringLiteral("proto_ids"), header.proto_ids_off,
-                            static_cast<qint64>(header.proto_ids_size) * sizeof(XDEX_DEF::PROTO_ITEM_ID), nLimit)) return listResult;
-        if (appendDexRegion(&listResult, QStringLiteral("field_ids"), header.field_ids_off,
-                            static_cast<qint64>(header.field_ids_size) * sizeof(XDEX_DEF::FIELD_ITEM_ID), nLimit)) return listResult;
+                            static_cast<qint64>(header.string_ids_size) * sizeof(XDEX_DEF::STRING_ITEM_ID), nLimit))
+            return listResult;
+        if (appendDexRegion(&listResult, QStringLiteral("type_ids"), header.type_ids_off, static_cast<qint64>(header.type_ids_size) * sizeof(XDEX_DEF::TYPE_ITEM_ID),
+                            nLimit))
+            return listResult;
+        if (appendDexRegion(&listResult, QStringLiteral("proto_ids"), header.proto_ids_off, static_cast<qint64>(header.proto_ids_size) * sizeof(XDEX_DEF::PROTO_ITEM_ID),
+                            nLimit))
+            return listResult;
+        if (appendDexRegion(&listResult, QStringLiteral("field_ids"), header.field_ids_off, static_cast<qint64>(header.field_ids_size) * sizeof(XDEX_DEF::FIELD_ITEM_ID),
+                            nLimit))
+            return listResult;
         if (appendDexRegion(&listResult, QStringLiteral("method_ids"), header.method_ids_off,
-                            static_cast<qint64>(header.method_ids_size) * sizeof(XDEX_DEF::METHOD_ITEM_ID), nLimit)) return listResult;
+                            static_cast<qint64>(header.method_ids_size) * sizeof(XDEX_DEF::METHOD_ITEM_ID), nLimit))
+            return listResult;
         if (appendDexRegion(&listResult, QStringLiteral("class_defs"), header.class_defs_off,
-                            static_cast<qint64>(header.class_defs_size) * sizeof(XDEX_DEF::CLASS_ITEM_DEF), nLimit)) return listResult;
+                            static_cast<qint64>(header.class_defs_size) * sizeof(XDEX_DEF::CLASS_ITEM_DEF), nLimit))
+            return listResult;
         if (appendDexRegion(&listResult, QStringLiteral("data"), header.data_off, header.data_size, nLimit)) return listResult;
     }
 
@@ -2760,9 +2766,11 @@ QList<XBinary::XFHEADER> XDEX::getXFHeaders(const XFSTRUCT &xfStruct, PDSTRUCT *
                 QList<XDEX_DEF::MAP_ITEM> listMapItems = getMapItems(pPdStruct);
                 if (!isPdStructLifetimeAlive(progressLifetime)) return {};
                 XDEX_DEF::MAP_ITEM miCallSite = getMapItem(XDEX_DEF::TYPE_CALL_SITE_ID_ITEM, &listMapItems, pPdStruct);
-                addDexXFTable(this, xfStruct, &listResult, STRUCTID_CALL_SITE_IDS_LIST, miCallSite.nOffset, miCallSite.nCount, sizeof(XDEX_DEF::CALL_SITE_ITEM_ID), sParent);
+                addDexXFTable(this, xfStruct, &listResult, STRUCTID_CALL_SITE_IDS_LIST, miCallSite.nOffset, miCallSite.nCount, sizeof(XDEX_DEF::CALL_SITE_ITEM_ID),
+                              sParent);
                 XDEX_DEF::MAP_ITEM miMethodHandle = getMapItem(XDEX_DEF::TYPE_METHOD_HANDLE_ITEM, &listMapItems, pPdStruct);
-                addDexXFTable(this, xfStruct, &listResult, STRUCTID_METHOD_HANDLE_LIST, miMethodHandle.nOffset, miMethodHandle.nCount, sizeof(XDEX_DEF::METHOD_HANDLE_ITEM), sParent);
+                addDexXFTable(this, xfStruct, &listResult, STRUCTID_METHOD_HANDLE_LIST, miMethodHandle.nOffset, miMethodHandle.nCount,
+                              sizeof(XDEX_DEF::METHOD_HANDLE_ITEM), sParent);
 
                 qint32 nMapCount = (qint32)read_uint32(hdr.map_off, isBigEndian());
                 _addTable(STRUCTID_MAP_LIST, hdr.map_off + sizeof(quint32), nMapCount, sizeof(XDEX_DEF::MAP_ITEM), sParent);
@@ -2902,8 +2910,7 @@ bool XDEX::handleInternalInfo(PDSTRUCT *pPdStruct)
         bResult = XBinary::handleInternalInfo(pPdStruct);
 
         if (bResult) {
-            static_cast<XBinary::INTERNAL_INFO &>(m_internalInfo) =
-                *static_cast<XBinary::INTERNAL_INFO *>(XBinary::getInternalInfo(pPdStruct));
+            static_cast<XBinary::INTERNAL_INFO &>(m_internalInfo) = *static_cast<XBinary::INTERNAL_INFO *>(XBinary::getInternalInfo(pPdStruct));
             setIsInternalInfoHandled(true);
         }
     }

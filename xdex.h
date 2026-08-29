@@ -44,11 +44,11 @@ public:
 
     // Decoded encoded_value (non-recursive: arrays/annotations expose a nested offset instead of by-value children, so this stays Qt6-safe).
     struct ENCODED_VALUE {
-        quint8 nValueType;    // 0x00..0x1f
-        quint8 nValueArg;     // high 3 bits of the header byte
-        quint64 nValueRaw;    // assembled little-endian payload: scalar bits / pool index / bool (0/1)
-        qint64 nNestedOffset; // VALUE_ARRAY / VALUE_ANNOTATION: file offset of the nested structure; else -1
-        qint64 nSize;         // total bytes consumed by this encoded_value
+        quint8 nValueType;     // 0x00..0x1f
+        quint8 nValueArg;      // high 3 bits of the header byte
+        quint64 nValueRaw;     // assembled little-endian payload: scalar bits / pool index / bool (0/1)
+        qint64 nNestedOffset;  // VALUE_ARRAY / VALUE_ANNOTATION: file offset of the nested structure; else -1
+        qint64 nSize;          // total bytes consumed by this encoded_value
     };
 
     // Parsed class_data_item (encoded fields/methods with delta-decoded indices).
@@ -270,9 +270,9 @@ private:
     qint64 _readSleb128(qint64 nOffset, qint32 nMax, qint32 *pnByteSize);
     // Resolve a type-pool index to its raw Java descriptor ("Lpkg/Cls;", "[I", "V", ...).
     QString _typeIndexToDescriptor(quint32 nTypeIndex, XDEX_DEF::MAP_ITEM *pMapStrings, XDEX_DEF::MAP_ITEM *pMapTypes);
+
 private:
     INTERNAL_INFO m_internalInfo;
-
 };
 
 #endif  // XDEX_H
