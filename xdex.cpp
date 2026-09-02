@@ -365,7 +365,7 @@ QVector<XBinary::XSYMBOL_STRUCT> XDEX::_getSymbolStructs()
         record.nOffset = mapMethod.nOffset + static_cast<qint64>(i) * sizeof(XDEX_DEF::METHOD_ITEM_ID);
         record.sName = getMethodString(static_cast<quint32>(i), &listMapItems, &pdStruct);
 
-        const auto it = mapDefinedMethods.constFind(static_cast<quint32>(i));
+        const QMap<quint32, DEFINED_METHOD>::const_iterator it = mapDefinedMethods.constFind(static_cast<quint32>(i));
         if (it == mapDefinedMethods.constEnd()) {
             record.symbolType = SYMBOL_TYPE_IMPORT;
         } else {
@@ -2716,25 +2716,6 @@ QList<XBinary::XFHEADER> XDEX::getXFHeaders(const XFSTRUCT &xfStruct, PDSTRUCT *
 
     XDEX_DEF::HEADER hdr = getHeader();
 
-    auto _addTable = [&](STRUCTID sid, qint64 nOff, qint32 nCount, qint32 nRowSize, const QString &sParentTag) {
-        if (nCount <= 0 || nOff <= 0) return;
-        // Clamp to what the file can actually hold: a crafted count must not balloon listRowLocations.
-        nCount = (qint32)clampTableCount((quint32)nCount, nOff, nRowSize, getSize());
-        if (nCount <= 0) return;
-        XFHEADER xfh = {};
-        xfh.sParentTag = sParentTag;
-        xfh.fileType = xfStruct.fileType;
-        xfh.structID = static_cast<XBinary::STRUCTID>(sid);
-        xfh.xLoc = offsetToLoc(nOff);
-        xfh.xfType = XFTYPE_TABLE;
-        xfh.listFields = getXFRecords(xfStruct.fileType, sid, xfh.xLoc);
-        for (qint32 i = 0; i < nCount; i++) {
-            xfh.listRowLocations.append(nOff + (qint64)i * nRowSize);
-        }
-        xfh.sTag = xfHeaderToTag(xfh, structIDToString(sid), sParentTag);
-        listResult.append(xfh);
-    };
-
     if (nStructID == 0) {
         XFSTRUCT _xfStruct = xfStruct;
         _xfStruct.nStructID = STRUCTID_HEADER;
@@ -2773,7 +2754,7 @@ QList<XBinary::XFHEADER> XDEX::getXFHeaders(const XFSTRUCT &xfStruct, PDSTRUCT *
                               sizeof(XDEX_DEF::METHOD_HANDLE_ITEM), sParent);
 
                 qint32 nMapCount = (qint32)read_uint32(hdr.map_off, isBigEndian());
-                _addTable(STRUCTID_MAP_LIST, hdr.map_off + sizeof(quint32), nMapCount, sizeof(XDEX_DEF::MAP_ITEM), sParent);
+                addDexXFTable(this, xfStruct, &listResult, STRUCTID_MAP_LIST, hdr.map_off + sizeof(quint32), nMapCount, sizeof(XDEX_DEF::MAP_ITEM), sParent);
             }
         }
     } else if (nStructID == STRUCTID_STRING_IDS_LIST) {
@@ -2791,7 +2772,7 @@ QList<XBinary::XFHEADER> XDEX::getXFHeaders(const XFSTRUCT &xfStruct, PDSTRUCT *
     } else if (nStructID == STRUCTID_MAP_LIST) {
         if (hdr.map_off > 0) {
             qint32 nMapCount = (qint32)read_uint32(hdr.map_off, isBigEndian());
-            _addTable(STRUCTID_MAP_LIST, hdr.map_off + sizeof(quint32), nMapCount, sizeof(XDEX_DEF::MAP_ITEM), xfStruct.sParent);
+            addDexXFTable(this, xfStruct, &listResult, STRUCTID_MAP_LIST, hdr.map_off + sizeof(quint32), nMapCount, sizeof(XDEX_DEF::MAP_ITEM), xfStruct.sParent);
         }
     } else if (nStructID == STRUCTID_CALL_SITE_IDS_LIST) {
         QList<XDEX_DEF::MAP_ITEM> listMapItems = getMapItems(pPdStruct);

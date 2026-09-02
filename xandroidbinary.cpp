@@ -473,22 +473,19 @@ QVector<XBinary::XRESOURCE_STRUCT> XAndroidBinary::getResourceStructs()
     QList<RECORD> listPending = root.listChildren;
     qint32 nGuard = 0;
 
-    auto chunkTypeToName = [](quint16 nType) -> QString {
-        switch (nType) {
-            case XANDROIDBINARY_DEF::RES_STRING_POOL_TYPE: return QString("String pool");
-            case XANDROIDBINARY_DEF::RES_XML_RESOURCE_MAP_TYPE: return QString("Resource map");
-            case XANDROIDBINARY_DEF::RES_TABLE_PACKAGE_TYPE: return QString("Resource package");
-            case XANDROIDBINARY_DEF::RES_TABLE_TYPE_TYPE: return QString("Resource type");
-            case XANDROIDBINARY_DEF::RES_TABLE_TYPE_SPEC_TYPE: return QString("Resource type specification");
-            default: return QString();
-        }
-    };
-
     while (!listPending.isEmpty() && (nGuard++ < 0x10000)) {
         const RECORD record = listPending.takeFirst();
         listPending.append(record.listChildren);
 
-        const QString sName = chunkTypeToName(record.header.type);
+        QString sName;
+        switch (record.header.type) {
+            case XANDROIDBINARY_DEF::RES_STRING_POOL_TYPE: sName = QString("String pool"); break;
+            case XANDROIDBINARY_DEF::RES_XML_RESOURCE_MAP_TYPE: sName = QString("Resource map"); break;
+            case XANDROIDBINARY_DEF::RES_TABLE_PACKAGE_TYPE: sName = QString("Resource package"); break;
+            case XANDROIDBINARY_DEF::RES_TABLE_TYPE_TYPE: sName = QString("Resource type"); break;
+            case XANDROIDBINARY_DEF::RES_TABLE_TYPE_SPEC_TYPE: sName = QString("Resource type specification"); break;
+            default: break;
+        }
         if (sName.isEmpty() || (record.header.data_size < sizeof(XANDROIDBINARY_DEF::HEADER)) || !checkOffsetSize(record.nOffset, record.header.data_size)) {
             continue;
         }
