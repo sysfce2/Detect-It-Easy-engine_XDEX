@@ -360,6 +360,12 @@ QVector<XBinary::XSYMBOL_STRUCT> XDEX::_getSymbolStructs()
     const qint32 nNumberOfMethods = listMethods.count();
     listResult.reserve(nNumberOfMethods);
 
+    // One memory map for all methods: offsetToAddress(offset) would rebuild it
+    // (a full walk of the string items) per method, which is quadratic and
+    // freezes the Import/Export/Symbols panels on real DEX files.
+    _MEMORY_MAP memoryMap = {};
+    bool bMemoryMapBuilt = false;
+
     for (qint32 i = 0; i < nNumberOfMethods; ++i) {
         XSYMBOL_STRUCT record = {};
         record.nOffset = mapMethod.nOffset + static_cast<qint64>(i) * sizeof(XDEX_DEF::METHOD_ITEM_ID);
@@ -372,7 +378,11 @@ QVector<XBinary::XSYMBOL_STRUCT> XDEX::_getSymbolStructs()
             const DEFINED_METHOD &definedMethod = it.value();
             if (definedMethod.nCodeOffset != 0) {
                 record.nSize = getCodeItemSize(definedMethod.nCodeOffset, &pdStruct);
-                record.nAddress = offsetToAddress(definedMethod.nCodeOffset);
+                if (!bMemoryMapBuilt) {
+                    memoryMap = getMemoryMap(MAPMODE_UNKNOWN, &pdStruct);
+                    bMemoryMapBuilt = true;
+                }
+                record.nAddress = XBinary::offsetToAddress(&memoryMap, definedMethod.nCodeOffset);
             }
 
             if (definedMethod.nAccessFlags & (XDEX_DEF::ACC_PUBLIC | XDEX_DEF::ACC_PROTECTED)) {
